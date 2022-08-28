@@ -160,7 +160,7 @@ export class OrcaPoolImpl implements OrcaPool {
   }
 
   public async swapWithTA(
-    ta: Account,
+    inputPoolTokenUserAddress: PublicKey,
     owner: Keypair | PublicKey,
     inputToken: OrcaToken,
     amountIn: Decimal | OrcaU64,
@@ -181,9 +181,13 @@ export class OrcaPoolImpl implements OrcaPool {
       "minimumAmountOut"
     );
 
-    const inputPoolTokenUserAddress = ta.address;
-    const resolveInputAddrInstructions = null;
-
+    const { address: foo, ...resolveInputAddrInstructions } =
+      await resolveOrCreateAssociatedTokenAddress(
+        this.connection,
+        _owner,
+        inputPoolToken.mint,
+        amountInU64
+      );
 
     const { address: outputPoolTokenUserAddress, ...resolveOutputAddrInstructions } =
       await resolveOrCreateAssociatedTokenAddress(this.connection, _owner, outputPoolToken.mint);
