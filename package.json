@@ -46,7 +46,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/orca-so/typescript-sdk.git"
+    "url": "git+https://github.com/benmills/typescript-sdk.git"
   },
   "keywords": [
     "orca_so",
@@ -59,7 +59,7 @@
   ],
   "author": "team@orca.so",
   "bugs": {
-    "url": "https://github.com/orca-so/typescript-sdk/issues"
+    "url": "https://github.com/benmills/typescript-sdk/issues"
   },
   "homepage": "https://www.orca.so"
 }
