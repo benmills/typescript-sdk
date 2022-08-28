@@ -1,5 +1,5 @@
 import { u64 } from "@solana/spl-token";
-import { Connection, PublicKey, Keypair } from "@solana/web3.js";
+import { Connection, PublicKey, Keypair, Account } from "@solana/web3.js";
 import Decimal from "decimal.js";
 import { defaultSlippagePercentage } from "../../../constants/orca-defaults";
 
@@ -157,6 +157,66 @@ export class OrcaPoolImpl implements OrcaPool {
     }
 
     return quote;
+  }
+
+  public async swapWithTA(
+    ta: Account,
+    owner: Keypair | PublicKey,
+    inputToken: OrcaToken,
+    amountIn: Decimal | OrcaU64,
+    minimumAmountOut: Decimal | OrcaU64
+  ): Promise<TransactionPayload> {
+    const _owner = new Owner(owner);
+
+    const ownerAddress = _owner.publicKey;
+
+    const { inputPoolToken, outputPoolToken } = getTokens(
+      this.poolParams,
+      inputToken.mint.toString()
+    );
+    const amountInU64 = U64Utils.toTokenU64(amountIn, inputPoolToken, "amountIn");
+    const minimumAmountOutU64 = U64Utils.toTokenU64(
+      minimumAmountOut,
+      outputPoolToken,
+      "minimumAmountOut"
+    );
+
+    const inputPoolTokenUserAddress = ta.address;
+    const resolveInputAddrInstructions = null;
+
+
+    const { address: outputPoolTokenUserAddress, ...resolveOutputAddrInstructions } =
+      await resolveOrCreateAssociatedTokenAddress(this.connection, _owner, outputPoolToken.mint);
+
+    if (inputPoolTokenUserAddress === undefined || outputPoolTokenUserAddress === undefined) {
+      throw new Error("Unable to derive input / output token associated address.");
+    }
+
+    const { userTransferAuthority, ...approvalInstruction } = createApprovalInstruction(
+      ownerAddress,
+      amountInU64,
+      inputPoolTokenUserAddress
+    );
+
+    const swapInstruction = await createSwapInstruction(
+      this.poolParams,
+      _owner,
+      inputPoolToken,
+      inputPoolTokenUserAddress,
+      outputPoolToken,
+      outputPoolTokenUserAddress,
+      amountInU64,
+      minimumAmountOutU64,
+      userTransferAuthority.publicKey,
+      this.orcaTokenSwapId
+    );
+
+    return await new TransactionBuilder(this.connection, ownerAddress, _owner)
+      .addInstruction(resolveInputAddrInstructions)
+      .addInstruction(resolveOutputAddrInstructions)
+      .addInstruction(approvalInstruction)
+      .addInstruction(swapInstruction)
+      .build();
   }
 
   public async swap(
